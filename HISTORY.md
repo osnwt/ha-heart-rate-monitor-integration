@@ -1,5 +1,10 @@
 # Release history
 
+## v0.1.2 — Wait for a new heart rate advertisement
+
+- After a BLE session ends, wait for a fresh Heart Rate Service advertisement before reconnecting. This avoids repeated connection attempts based on cached device data after broadcasting is turned off.
+- Log BLE disconnect errors at debug level.
+
 ## v0.1.1 — Separate live and final session heart rate
 
 - Added **Session Last Heart Rate**. It captures the final reading when the device disconnects and stays available until the next session starts.

@@ -13,7 +13,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
-from .const import MEASUREMENT_UUID, SIGNAL_UPDATED
+from .const import HEART_RATE_SERVICE_UUID, MEASUREMENT_UUID, SIGNAL_UPDATED
 from .protocol import parse_measurement
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +40,11 @@ class Monitor:
         return bluetooth.async_register_callback(
             self.hass,
             self._advertisement,
-            {"address": self.address, "connectable": True},
+            {
+                "address": self.address,
+                "connectable": True,
+                "service_uuid": HEART_RATE_SERVICE_UUID,
+            },
             bluetooth.BluetoothScanningMode.ACTIVE,
         )
 
@@ -59,11 +63,15 @@ class Monitor:
                 await self._task
 
     async def _run(self):
-        while device := bluetooth.async_ble_device_from_address(
+        device = bluetooth.async_ble_device_from_address(
             self.hass, self.address, connectable=True
-        ):
+        )
+        if device is not None:
             await self._subscribe(device)
-            await asyncio.sleep(5)
+
+        if not self._stopped:
+            # Let the next matching packet trigger a callback even if it is unchanged.
+            bluetooth.async_clear_advertisement_history(self.hass, self.address)
 
     async def _subscribe(self, device):
         disconnected = asyncio.Event()
@@ -111,8 +119,10 @@ class Monitor:
             disconnected.set()
             self._set_disconnected()
             if client is not None and client.is_connected:
-                with suppress(BleakError, TimeoutError, OSError):
+                try:
                     await client.disconnect()
+                except (BleakError, TimeoutError, OSError) as err:
+                    _LOGGER.debug("BLE disconnect failed for %s: %s", self.address, err)
 
     @callback
     def _set_disconnected(self):

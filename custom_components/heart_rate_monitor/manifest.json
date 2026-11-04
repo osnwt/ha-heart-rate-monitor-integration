@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/osnwt/ha-heart-rate-monitor-integration/issues",
   "integration_type": "device",
   "iot_class": "local_push",
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
