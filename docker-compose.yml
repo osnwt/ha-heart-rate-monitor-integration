@@ -1,0 +1,15 @@
+name: ${COMPOSE_PROJECT_NAME:-heart-rate-monitor-dev}
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: ${HA_CONTAINER_NAME:-heart-rate-monitor-dev}
+    restart: unless-stopped
+    stop_grace_period: 90s
+    ports:
+      - "${HA_PORT:-8123}:8123"
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+    volumes:
+      - ./data:/config
+      - ./custom_components:/config/custom_components

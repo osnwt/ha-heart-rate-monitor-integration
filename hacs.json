@@ -1,0 +1,8 @@
+{
+  "name": "Heart Rate Monitor",
+  "content_in_root": false,
+  "domains": [
+    "heart_rate_monitor"
+  ],
+  "render_readme": true
+}

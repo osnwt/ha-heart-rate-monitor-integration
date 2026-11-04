@@ -1,0 +1,3 @@
+DOMAIN = "heart_rate_monitor"
+MEASUREMENT_UUID = "00002a37-0000-1000-8000-00805f9b34fb"
+SIGNAL_UPDATED = DOMAIN + "_updated_{}"
