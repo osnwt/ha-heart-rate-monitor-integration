@@ -33,6 +33,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     registry = er.async_get(hass)
     heart_rate, rr_interval, energy = DESCRIPTIONS
     async_add_entities([
+        SessionLastSensor(monitor, SensorEntityDescription(
+            key="session_last",
+            name="Session Last Heart Rate",
+            native_unit_of_measurement="bpm",
+            icon="mdi:heart-pulse",
+        )),
         SessionStartSensor(monitor, SensorEntityDescription(
             key="session_start", name="Session Start", device_class=SensorDeviceClass.TIMESTAMP
         )),
@@ -50,13 +56,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
         HeartRateSensor(monitor, heart_rate),
         RRIntervalSensor(monitor, rr_interval),
         MeasurementSensor(monitor, energy),
-        SessionValueSensor(monitor, SensorEntityDescription(
+        SessionExtremumSensor(monitor, SensorEntityDescription(
             key="session_min",
             name="Session Min Heart Rate",
             native_unit_of_measurement="bpm",
             icon="mdi:arrow-collapse-down",
         )),
-        SessionValueSensor(monitor, SensorEntityDescription(
+        SessionExtremumSensor(monitor, SensorEntityDescription(
             key="session_max",
             name="Session Max Heart Rate",
             native_unit_of_measurement="bpm",
@@ -97,14 +103,6 @@ class MeasurementSensor(MonitorEntity, SensorEntity):
 
 class HeartRateSensor(MeasurementSensor, RestoreSensor):
     @property
-    def available(self):
-        return self.native_value is not None
-
-    @property
-    def native_value(self):
-        return self.monitor.heart_rate
-
-    @property
     def extra_state_attributes(self):
         return {
             "connected": self.monitor.connected,
@@ -121,9 +119,10 @@ class HeartRateSensor(MeasurementSensor, RestoreSensor):
         rate = last_data.native_value
         if not isinstance(rate, int):
             return
-        self.monitor.heart_rate = rate
-        self.monitor.session_min = last_state.attributes.get("session_min", rate)
-        self.monitor.session_max = last_state.attributes.get("session_max", rate)
+        if self.monitor.session_min is None:
+            self.monitor.session_min = last_state.attributes.get("session_min", rate)
+        if self.monitor.session_max is None:
+            self.monitor.session_max = last_state.attributes.get("session_max", rate)
         async_dispatcher_send(self.hass, self.monitor.signal)
 
 
@@ -135,6 +134,22 @@ class SessionValueSensor(MeasurementSensor):
     @property
     def native_value(self):
         return getattr(self.monitor, self.entity_description.key)
+
+
+class SessionExtremumSensor(SessionValueSensor, RestoreSensor):
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        last_data = await self.async_get_last_sensor_data()
+        if self.native_value is None and last_data is not None:
+            setattr(self.monitor, self.entity_description.key, last_data.native_value)
+
+
+class SessionLastSensor(SessionValueSensor, RestoreSensor):
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        last_data = await self.async_get_last_sensor_data()
+        if not self.monitor.connected and self.native_value is None and last_data is not None:
+            self.monitor.session_last = last_data.native_value
 
 
 class SessionDurationSensor(SessionValueSensor):

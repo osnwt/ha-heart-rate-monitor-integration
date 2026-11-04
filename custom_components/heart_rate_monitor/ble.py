@@ -27,7 +27,7 @@ class Monitor:
         self.signal = SIGNAL_UPDATED.format(entry.entry_id)
         self.connected = False
         self.measurement = None
-        self.heart_rate = None
+        self.session_last = None
         self.session_min = None
         self.session_max = None
         self.session_start = None
@@ -87,7 +87,6 @@ class Monitor:
             else:
                 self.session_min = min(self.session_min, rate)
                 self.session_max = max(self.session_max, rate)
-            self.heart_rate = rate
             self.measurement = measurement
             self._publish()
 
@@ -102,6 +101,7 @@ class Monitor:
             if not disconnected.is_set() and client.is_connected:
                 self.session_start = dt_util.utcnow()
                 self.session_end = None
+                self.session_last = None
                 self.connected = True
                 self._publish()
                 await disconnected.wait()
@@ -118,6 +118,8 @@ class Monitor:
     def _set_disconnected(self):
         if self.connected:
             self.session_end = dt_util.utcnow()
+            if self.measurement is not None:
+                self.session_last = self.measurement.heart_rate
         if self.connected or self.measurement is not None:
             self.connected = False
             self.measurement = None

@@ -41,13 +41,14 @@ When an added device is discovered, the integration connects and subscribes to t
 | RR Interval | The latest interval in milliseconds. The `intervals_ms` attribute contains all intervals in the packet |
 | Session Min Heart Rate | Lowest heart rate recorded in the session, in beats per minute |
 | Session Max Heart Rate | Highest heart rate recorded in the session, in beats per minute |
+| Session Last Heart Rate | Last reading of the completed session, in beats per minute |
 | Session Start | Time when the integration successfully subscribed to measurements |
 | Session End | Time when the connection ended |
 | Session Duration | Elapsed time in seconds between session start and end |
 
 Measurement entities appear when the integration first receives their corresponding fields. The parser discards incomplete packets and ignores reserved flags. See the [Bluetooth Heart Rate Service specification](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/HRS_v1.0/out/en/index-en.html).
 
-On disconnect, `Connected` turns off and the `connected` attribute of `Heart Rate` becomes `false`. The last heart rate and session minimum and maximum remain available and are restored after a Home Assistant restart. The minimum and maximum are also available as `session_min` and `session_max` attributes on `Heart Rate`. The first measurement of the next session resets both values. Skin contact, energy, and RR intervals become `unavailable` on disconnect. The integration reconnects when the device becomes available again.
+On disconnect, `Connected` turns off and live `Heart Rate` becomes `unavailable`, leaving a gap in its history. Skin contact, energy, and RR intervals also become `unavailable`. `Session Last Heart Rate` records the final reading on disconnect and stays available until the next session starts. During an active session, it is `unavailable`. The session minimum and maximum remain available after disconnect and reset on the first reading of the next session. The three session readings are restored after a Home Assistant restart. The integration reconnects when the device becomes available again.
 
 Session timestamps are restored after a restart and kept until the next connection. `Session End` and `Session Duration` remain `unavailable` while a session is active or if the disconnect time was never recorded.
 
